@@ -139,6 +139,60 @@ def add_customer():
     flash('Customer added successfully!')
     return redirect(url_for('customers'))
 
+# API endpoint for WhatsApp Sender
+@app.route('/api/customers', methods=['POST'])
+def api_add_customer():
+    """API endpoint for WhatsApp Sender to add customers"""
+    data = request.json
+    
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+    
+    name = data.get('name')
+    phone = data.get('phone')
+    email = data.get('email', '')
+    seller_id = data.get('seller_id')  # Can be null for NO SELLER
+    
+    if not name or not phone:
+        return jsonify({"error": "Name and phone required"}), 400
+    
+    # Check if customer with this phone already exists
+    existing = Customer.query.filter_by(phone=phone).first()
+    if existing:
+        return jsonify({
+            "message": "Customer already exists",
+            "customer_id": existing.id,
+            "name": existing.name
+        }), 200
+    
+    # Create new customer
+    new_customer = Customer(
+        user_id=seller_id,  # Can be None for NO SELLER
+        name=name,
+        phone=phone,
+        email=email
+    )
+    db.session.add(new_customer)
+    db.session.commit()
+    
+    return jsonify({
+        "message": "Customer added successfully",
+        "customer_id": new_customer.id,
+        "name": new_customer.name
+    }), 201
+
+@app.route('/api/customers', methods=['GET'])
+@login_required
+def api_get_customers():
+    """API endpoint to get customers for logged-in seller"""
+    customers = Customer.query.filter_by(user_id=current_user.id).all()
+    return jsonify([{
+        "id": c.id,
+        "name": c.name,
+        "phone": c.phone,
+        "email": c.email
+    } for c in customers])
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
