@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -30,7 +30,7 @@ class User(UserMixin, db.Model):
 
 class Customer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     name = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20))
     email = db.Column(db.String(120))
@@ -95,7 +95,6 @@ def login():
         username_or_email = request.form.get('username_or_email')
         password = request.form.get('password')
         
-        # Try to find user by username or email
         user = User.query.filter((User.username == username_or_email) | (User.email == username_or_email)).first()
         
         if user and user.check_password(password):
@@ -151,7 +150,7 @@ def api_add_customer():
     name = data.get('name')
     phone = data.get('phone')
     email = data.get('email', '')
-    seller_id = data.get('seller_id')  # Can be null for NO SELLER
+    seller_id = data.get('seller_id')
     
     if not name or not phone:
         return jsonify({"error": "Name and phone required"}), 400
@@ -167,7 +166,7 @@ def api_add_customer():
     
     # Create new customer
     new_customer = Customer(
-        user_id=seller_id,  # Can be None for NO SELLER
+        user_id=seller_id,
         name=name,
         phone=phone,
         email=email
